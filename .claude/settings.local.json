@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(./node_modules/.bin/prisma generate:*)",
+      "Bash(./node_modules/.bin/prisma migrate:*)",
+      "Bash(./node_modules/.bin/prisma db:*)",
+      "Bash(npm run:*)",
+      "Bash(powershell:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx prisma:*)",
+      "Bash(curl:*)",
+      "Bash(kill 168:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(node:*)",
+      "Bash(npx kill-port:*)"
+    ]
+  }
+}

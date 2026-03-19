@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Referral {
+  id                Int      @id @default(autoincrement())
+  referral_id       String   @unique
+  service_user_name String
+  dob               DateTime
+  referral_source   String
+  referrer_name     String
+  referrer_contact  String
+  support_needs     String
+  urgency_level     String
+  status            String   @default("NEW")
+  priority_score    Int      @default(0)
+  risk_flags        Json     @default("[]")
+  created_at        DateTime @default(now())
+
+  @@map("referrals")
+}
+
+model Task {
+  id           Int              @id @default(autoincrement())
+  title        String
+  description  String?
+  priority     String           @default("NORMAL")   // CRITICAL | HIGH | NORMAL
+  status       String           @default("PENDING")  // PENDING | IN_PROGRESS | DONE
+  assignedTo   String?
+  referral_id  String?
+  deadline     DateTime?
+  urgent       Boolean          @default(false)
+  ai_generated Boolean          @default(false)
+  source       String           @default("MANUAL")   // MANUAL | N8N | API
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @default(now()) @updatedAt
+  assignments  TaskAssignment[]
+}
+
+model Staff {
+  id          Int              @id @default(autoincrement())
+  name        String
+  role        String
+  email       String           @unique
+  phone       String
+  created_at  DateTime         @default(now())
+  assignments TaskAssignment[]
+}
+
+model TaskAssignment {
+  id          Int      @id @default(autoincrement())
+  task_id     Int
+  staff_id    Int
+  status      String   @default("ASSIGNED")
+  assigned_at DateTime @default(now())
+
+  task  Task  @relation(fields: [task_id], references: [id])
+  staff Staff @relation(fields: [staff_id], references: [id])
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  role       String   // ADMIN | MANAGER | STAFF
+  created_at DateTime @default(now())
+
+  @@map("users")
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  entity     String
+  entity_id  Int
+  action     String
+  details    String
+  created_at DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+model Escalation {
+  id         Int      @id @default(autoincrement())
+  task_id    Int
+  priority   String
+  created_at DateTime @default(now())
+
+  @@map("escalations")
+}
+
+// Task 9 — Logging system
+model Log {
+  id        Int      @id @default(autoincrement())
+  message   String
+  level     String   @default("INFO")  // INFO | WARNING | CRITICAL
+  payload   Json?
+  source    String   @default("SYSTEM") // SYSTEM | N8N | API
+  timestamp DateTime @default(now())
+
+  @@map("logs")
+}

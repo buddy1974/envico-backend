@@ -1,0 +1,151 @@
+{
+  "name": "Envico Escalation Handler",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "envico-escalation",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "Route by Priority",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.priority }}",
+        "rules": {
+          "rules": [
+            { "value2": "CRITICAL", "output": 0 },
+            { "value2": "HIGH", "output": 1 }
+          ]
+        },
+        "fallbackOutput": 2
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Critical Escalation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 140],
+      "parameters": {
+        "jsCode": "const taskId = $input.first().json.task_id;\nconsole.log(`CRITICAL ESCALATION: Task ${taskId}`);\nreturn [{ json: { escalated: true, level: 'CRITICAL', task_id: taskId } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "High Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "parameters": {
+        "jsCode": "const taskId = $input.first().json.task_id;\nconsole.log(`HIGH PRIORITY: Task ${taskId}`);\nreturn [{ json: { escalated: false, level: 'HIGH', task_id: taskId } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "Normal Task",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 460],
+      "parameters": {
+        "jsCode": "const taskId = $input.first().json.task_id;\nconsole.log(`NORMAL TASK: Task ${taskId}`);\nreturn [{ json: { escalated: false, level: 'NORMAL', task_id: taskId } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000006",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [940, 300],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route by Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Priority": {
+      "main": [
+        [
+          {
+            "node": "Critical Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normal Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Escalation": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Priority": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normal Task": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
