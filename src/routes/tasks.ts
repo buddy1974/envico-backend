@@ -82,7 +82,7 @@ export async function taskRoutes(fastify: FastifyInstance): Promise<void> {
   // ─── POST /api/tasks — Task 3 (n8n creates tasks here) ─────────────────────
   fastify.post(
     '/api/tasks',
-    { preHandler: process.env.NODE_ENV === 'production' ? [authenticate] : [] },
+    { preHandler: [] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = CreateTaskSchema.safeParse(request.body);
       if (!parsed.success) {
