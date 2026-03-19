@@ -9,9 +9,9 @@ async function cleanDuplicateFollowUps() {
   // Group by referral_id
   const byReferral = new Map<string, typeof followUps>();
   for (const task of followUps) {
-    const group = byReferral.get(task.referral_id) ?? [];
+    const group = byReferral.get(task.referral_id!) ?? [];
     group.push(task);
-    byReferral.set(task.referral_id, group);
+    byReferral.set(task.referral_id!, group);
   }
 
   let deleted = 0;
