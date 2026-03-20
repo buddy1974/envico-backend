@@ -95,13 +95,14 @@ model Task {
 }
 
 model Staff {
-  id          Int              @id @default(autoincrement())
-  name        String
-  role        String
-  email       String           @unique
-  phone       String
-  created_at  DateTime         @default(now())
-  assignments TaskAssignment[]
+  id              Int              @id @default(autoincrement())
+  name            String
+  role            String
+  email           String           @unique
+  phone           String
+  created_at      DateTime         @default(now())
+  assignments     TaskAssignment[]
+  payroll_records PayrollRecord[]
 }
 
 model TaskAssignment {
@@ -202,6 +203,9 @@ model ServiceUser {
   care_plans       CarePlan[]
   incidents        Incident[]
   medications      Medication[]
+  funding_sources  FundingSource[]
+  invoices         Invoice[]
+  transactions     FinanceTransaction[]
 
   @@map("service_users")
 }
@@ -272,4 +276,163 @@ model Medication {
   updated_at      DateTime         @default(now()) @updatedAt
 
   @@map("medications")
+}
+
+// ─── Phase 3 Enums ───────────────────────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum FundingType {
+  LOCAL_AUTHORITY
+  NHS
+  PRIVATE
+  DIRECT_PAYMENT
+  MIXED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionCategory {
+  CARE_FEES
+  STAFF_WAGES
+  UTILITIES
+  SUPPLIES
+  TRANSPORT
+  TRAINING
+  OTHER
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+// ─── Phase 3 models ──────────────────────────────────────────────────────────
+
+model FundingSource {
+  id               Int         @id @default(autoincrement())
+
+  service_user_id  Int
+  service_user     ServiceUser @relation(fields: [service_user_id], references: [id])
+
+  funder_name      String
+  funding_type     FundingType
+  weekly_rate      Decimal     @db.Decimal(10, 2)
+  contribution_pct Int         @default(100)
+  reference_no     String?
+  start_date       DateTime
+  end_date         DateTime?
+  is_active        Boolean     @default(true)
+  notes            String?
+
+  invoices         Invoice[]
+
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @default(now()) @updatedAt
+
+  @@map("funding_sources")
+}
+
+model Invoice {
+  id                Int            @id @default(autoincrement())
+  invoice_number    String         @unique
+
+  service_user_id   Int
+  service_user      ServiceUser    @relation(fields: [service_user_id], references: [id])
+
+  funding_source_id Int?
+  funding_source    FundingSource? @relation(fields: [funding_source_id], references: [id])
+
+  period_start      DateTime
+  period_end        DateTime
+  weeks             Decimal        @db.Decimal(10, 2)
+  weekly_rate       Decimal        @db.Decimal(10, 2)
+  amount_net        Decimal        @db.Decimal(10, 2)
+  vat_amount        Decimal        @default(0) @db.Decimal(10, 2)
+  amount_total      Decimal        @db.Decimal(10, 2)
+
+  status            InvoiceStatus  @default(DRAFT)
+  issued_at         DateTime?
+  due_date          DateTime?
+  paid_at           DateTime?
+
+  notes             String?
+  created_by        String
+
+  transactions      FinanceTransaction[]
+
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @default(now()) @updatedAt
+
+  @@map("invoices")
+}
+
+model PayrollRecord {
+  id               Int           @id @default(autoincrement())
+
+  staff_id         Int
+  staff            Staff         @relation(fields: [staff_id], references: [id])
+
+  period_start     DateTime
+  period_end       DateTime
+  hours_worked     Decimal       @db.Decimal(10, 2)
+  hourly_rate      Decimal       @db.Decimal(10, 2)
+  gross_pay        Decimal       @db.Decimal(10, 2)
+  deductions       Decimal       @default(0) @db.Decimal(10, 2)
+  net_pay          Decimal       @db.Decimal(10, 2)
+  overtime_hours   Decimal       @default(0) @db.Decimal(10, 2)
+  overtime_rate    Decimal       @default(0) @db.Decimal(10, 2)
+
+  status           PayrollStatus @default(DRAFT)
+  approved_by      String?
+  approved_at      DateTime?
+  paid_at          DateTime?
+  payment_ref      String?
+
+  notes            String?
+
+  transactions     FinanceTransaction[]
+
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @default(now()) @updatedAt
+
+  @@map("payroll_records")
+}
+
+model FinanceTransaction {
+  id               Int                 @id @default(autoincrement())
+
+  type             TransactionType
+  category         TransactionCategory
+  amount           Decimal             @db.Decimal(10, 2)
+  description      String
+  reference        String?
+  transaction_date DateTime
+
+  service_user_id  Int?
+  service_user     ServiceUser?        @relation(fields: [service_user_id], references: [id])
+
+  invoice_id       Int?
+  invoice          Invoice?            @relation(fields: [invoice_id], references: [id])
+
+  payroll_id       Int?
+  payroll          PayrollRecord?      @relation(fields: [payroll_id], references: [id])
+
+  recorded_by      String
+  notes            String?
+
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @default(now()) @updatedAt
+
+  @@map("finance_transactions")
 }
