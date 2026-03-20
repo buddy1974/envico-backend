@@ -17,6 +17,10 @@ import { invoiceRoutes } from './routes/invoices';
 import { payrollRoutes } from './routes/payroll';
 import { financeRoutes } from './routes/finance';
 import { fundingRoutes } from './routes/funding';
+import { staffDocumentRoutes } from './routes/staff-documents';
+import { trainingRoutes } from './routes/training';
+import { recruitmentRoutes } from './routes/recruitment';
+import { complianceRoutes } from './routes/compliance';
 
 import { registerHandlers } from './automation/handlers';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
@@ -83,6 +87,10 @@ export async function buildServer() {
   fastify.register(payrollRoutes);
   fastify.register(financeRoutes);
   fastify.register(fundingRoutes);
+  fastify.register(staffDocumentRoutes);
+  fastify.register(trainingRoutes);
+  fastify.register(recruitmentRoutes);
+  fastify.register(complianceRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);

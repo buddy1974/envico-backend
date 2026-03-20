@@ -101,8 +101,11 @@ model Staff {
   email           String           @unique
   phone           String
   created_at      DateTime         @default(now())
-  assignments     TaskAssignment[]
-  payroll_records PayrollRecord[]
+  assignments              TaskAssignment[]
+  payroll_records          PayrollRecord[]
+  documents                StaffDocument[]
+  training                 TrainingRecord[]
+  application              RecruitmentApplication?
 }
 
 model TaskAssignment {
@@ -200,12 +203,13 @@ model ServiceUser {
   created_at       DateTime          @default(now())
   updated_at       DateTime          @default(now()) @updatedAt
 
-  care_plans       CarePlan[]
-  incidents        Incident[]
-  medications      Medication[]
-  funding_sources  FundingSource[]
-  invoices         Invoice[]
-  transactions     FinanceTransaction[]
+  care_plans        CarePlan[]
+  incidents         Incident[]
+  medications       Medication[]
+  funding_sources   FundingSource[]
+  invoices          Invoice[]
+  transactions      FinanceTransaction[]
+  compliance_checks ComplianceCheck[]
 
   @@map("service_users")
 }
@@ -435,4 +439,156 @@ model FinanceTransaction {
   updated_at       DateTime            @default(now()) @updatedAt
 
   @@map("finance_transactions")
+}
+
+// ─── Phase 4 Enums ───────────────────────────────────────────────────────────
+
+enum DocumentType {
+  DBS
+  CONTRACT
+  RIGHT_TO_WORK
+  TRAINING_CERT
+  ID
+  OTHER
+}
+
+enum DocumentStatus {
+  VALID
+  EXPIRED
+  PENDING
+  REJECTED
+}
+
+enum TrainingStatus {
+  COMPLETED
+  EXPIRED
+  DUE
+  OVERDUE
+}
+
+enum ApplicationStatus {
+  NEW
+  SHORTLISTED
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+enum ComplianceCheckType {
+  SAFEGUARDING
+  MEDICATION
+  STAFFING
+  DOCUMENTATION
+  TRAINING
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  ACTION_REQUIRED
+  UNDER_REVIEW
+}
+
+// ─── Phase 4 models ──────────────────────────────────────────────────────────
+
+model StaffDocument {
+  id            Int            @id @default(autoincrement())
+
+  staff_id      Int
+  staff         Staff          @relation(fields: [staff_id], references: [id])
+
+  type          DocumentType
+  title         String
+  reference_no  String?
+  file_url      String?
+  issued_date   DateTime?
+  expiry_date   DateTime?
+  status        DocumentStatus @default(PENDING)
+
+  verified_by   String?
+  verified_at   DateTime?
+  notes         String?
+
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now()) @updatedAt
+
+  @@map("staff_documents")
+}
+
+model TrainingRecord {
+  id              Int            @id @default(autoincrement())
+
+  staff_id        Int
+  staff           Staff          @relation(fields: [staff_id], references: [id])
+
+  training_name   String
+  training_type   String
+  provider        String?
+  completed_date  DateTime?
+  expiry_date     DateTime?
+  certificate_url String?
+
+  status          TrainingStatus @default(DUE)
+
+  notes           String?
+
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @default(now()) @updatedAt
+
+  @@map("training_records")
+}
+
+model RecruitmentApplication {
+  id              Int               @id @default(autoincrement())
+
+  first_name      String
+  last_name       String
+  email           String
+  phone           String?
+  role_applied    String
+  cv_url          String?
+
+  status          ApplicationStatus @default(NEW)
+  applied_at      DateTime          @default(now())
+  interview_date  DateTime?
+  interview_notes String?
+  outcome_notes   String?
+
+  staff_id        Int?              @unique
+  staff           Staff?            @relation(fields: [staff_id], references: [id])
+
+  reviewed_by     String?
+
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @default(now()) @updatedAt
+
+  @@map("recruitment_applications")
+}
+
+model ComplianceCheck {
+  id                 Int                 @id @default(autoincrement())
+
+  check_type         ComplianceCheckType
+  title              String
+  description        String?
+
+  status             ComplianceStatus    @default(UNDER_REVIEW)
+
+  due_date           DateTime
+  completed_date     DateTime?
+  assigned_to        String
+  conducted_by       String?
+
+  findings           String?
+  actions_required   String?
+  actions_completed  Boolean             @default(false)
+
+  service_user_id    Int?
+  service_user       ServiceUser?        @relation(fields: [service_user_id], references: [id])
+
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @default(now()) @updatedAt
+
+  @@map("compliance_checks")
 }
