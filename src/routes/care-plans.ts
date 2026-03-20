@@ -24,6 +24,49 @@ const UpdateCarePlanSchema = z.object({
 
 export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
 
+  // GET /api/care-plans — all care plans across all service users
+  fastify.get(
+    '/api/care-plans',
+    { preHandler: [authenticate] },
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const care_plans = await prisma.carePlan.findMany({
+        include: {
+          service_user: { select: { id: true, first_name: true, last_name: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+      return reply.code(200).send({ success: true, care_plans });
+    }
+  );
+
+  // POST /api/care-plans — create care plan (service_user_id in body)
+  fastify.post(
+    '/api/care-plans',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const BodySchema = CreateCarePlanSchema.extend({
+        service_user_id: z.number().int().positive(),
+      });
+      const parsed = BodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+      }
+      const { service_user_id, ...data } = parsed.data;
+      const plan = await prisma.carePlan.create({
+        data: {
+          ...data,
+          service_user_id,
+          goals: data.goals ?? [],
+          ...(data.review_date ? { review_date: new Date(data.review_date) } : {}),
+        },
+        include: {
+          service_user: { select: { id: true, first_name: true, last_name: true } },
+        },
+      });
+      return reply.code(201).send({ success: true, care_plan: plan });
+    }
+  );
+
   // GET /api/service-users/:id/care-plans
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id/care-plans',

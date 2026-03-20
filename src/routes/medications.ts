@@ -22,6 +22,49 @@ const UpdateMedicationSchema = z.object({
 
 export async function medicationRoutes(fastify: FastifyInstance): Promise<void> {
 
+  // GET /api/medications — all medications across all service users
+  fastify.get(
+    '/api/medications',
+    { preHandler: [authenticate] },
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const medications = await prisma.medication.findMany({
+        include: {
+          service_user: { select: { id: true, first_name: true, last_name: true } },
+        },
+        orderBy: { start_date: 'desc' },
+      });
+      return reply.code(200).send({ success: true, medications });
+    }
+  );
+
+  // POST /api/medications — create medication (service_user_id in body)
+  fastify.post(
+    '/api/medications',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const BodySchema = CreateMedicationSchema.extend({
+        service_user_id: z.number().int().positive(),
+      });
+      const parsed = BodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+      }
+      const { service_user_id, ...data } = parsed.data;
+      const medication = await prisma.medication.create({
+        data: {
+          ...data,
+          service_user_id,
+          start_date: new Date(data.start_date),
+          ...(data.end_date ? { end_date: new Date(data.end_date) } : {}),
+        },
+        include: {
+          service_user: { select: { id: true, first_name: true, last_name: true } },
+        },
+      });
+      return reply.code(201).send({ success: true, medication });
+    }
+  );
+
   // GET /api/service-users/:id/medications
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id/medications',
