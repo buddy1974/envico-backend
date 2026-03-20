@@ -689,3 +689,27 @@ model Shift {
 
   @@map("shifts")
 }
+
+// ─── Phase 7E models ─────────────────────────────────────────────────────────
+
+model EmailLog {
+  id           Int      @id @default(autoincrement())
+  from_email   String
+  from_name    String?
+  subject      String
+  body         String
+  category     String?
+  priority     String   @default("normal")
+  department   String?
+  summary      String?
+  routed_to    String?
+  ai_reply     String?
+  handled      Boolean  @default(false)
+  handled_by   String?
+  handled_at   DateTime?
+  source       String   @default("MANUAL")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now()) @updatedAt
+
+  @@map("email_logs")
+}
