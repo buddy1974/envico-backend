@@ -2,6 +2,6 @@ import { FastifyInstance } from 'fastify';
 
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/health', async (_request, reply) => {
-    return reply.code(200).send({ status: 'ok' });
+    return reply.code(200).send({ status: 'ok', version: 'phase2', build: '5ec580f' });
   });
 }
