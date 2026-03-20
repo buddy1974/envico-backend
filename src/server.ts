@@ -21,6 +21,7 @@ import { staffDocumentRoutes } from './routes/staff-documents';
 import { trainingRoutes } from './routes/training';
 import { recruitmentRoutes } from './routes/recruitment';
 import { complianceRoutes } from './routes/compliance';
+import { assistantRoutes } from './routes/assistant';
 
 import { registerHandlers } from './automation/handlers';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
@@ -91,6 +92,7 @@ export async function buildServer() {
   fastify.register(trainingRoutes);
   fastify.register(recruitmentRoutes);
   fastify.register(complianceRoutes);
+  fastify.register(assistantRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
