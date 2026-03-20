@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npx kill-port 3000 && nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "build": "tsc",
-    "start": "prisma generate && node dist/server.js"
+    "start": "prisma generate && node dist/server.js",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
