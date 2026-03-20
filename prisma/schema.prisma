@@ -713,3 +713,15 @@ model EmailLog {
 
   @@map("email_logs")
 }
+
+model GoogleToken {
+  id            Int      @id @default(autoincrement())
+  user_id       Int      @unique
+  access_token  String
+  refresh_token String?
+  expiry_date   BigInt?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
+
+  @@map("google_tokens")
+}
