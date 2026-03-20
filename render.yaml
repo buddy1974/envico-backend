@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: envico-backend
+    runtime: node
+    buildCommand: npm install && npm run build && npx prisma generate
+    startCommand: node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: N8N_WEBHOOK_URL
+        sync: false
