@@ -18,6 +18,32 @@ const UpdateTrainingSchema = CreateTrainingSchema.partial();
 
 export async function trainingRoutes(fastify: FastifyInstance): Promise<void> {
 
+  // POST /api/training — global create (staff_id in body)
+  fastify.post(
+    '/api/training',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const BodySchema = CreateTrainingSchema.extend({
+        staff_id: z.number().int().positive(),
+      });
+      const parsed = BodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+      }
+      const { staff_id, completed_date, expiry_date, ...rest } = parsed.data;
+      const record = await prisma.trainingRecord.create({
+        data: {
+          ...rest,
+          staff_id,
+          ...(completed_date ? { completed_date: new Date(completed_date) } : {}),
+          ...(expiry_date ? { expiry_date: new Date(expiry_date) } : {}),
+        },
+        include: { staff: { select: { id: true, name: true, role: true } } },
+      });
+      return reply.code(201).send({ success: true, training: record });
+    }
+  );
+
   // GET /api/training — all records
   fastify.get(
     '/api/training',

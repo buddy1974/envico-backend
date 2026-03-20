@@ -24,6 +24,51 @@ const UpdateDocumentSchema = z.object({
 
 export async function staffDocumentRoutes(fastify: FastifyInstance): Promise<void> {
 
+  // GET /api/staff-documents — global list with staff joined
+  fastify.get(
+    '/api/staff-documents',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { status, type } = request.query as { status?: string; type?: string };
+      const where: Record<string, unknown> = {};
+      if (status) where.status = status;
+      if (type) where.type = type;
+
+      const documents = await prisma.staffDocument.findMany({
+        where,
+        include: { staff: { select: { id: true, name: true, role: true, email: true } } },
+        orderBy: { expiry_date: 'asc' },
+      });
+      return reply.code(200).send({ success: true, documents });
+    }
+  );
+
+  // POST /api/staff-documents — global create (staff_id in body)
+  fastify.post(
+    '/api/staff-documents',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const BodySchema = CreateDocumentSchema.extend({
+        staff_id: z.number().int().positive(),
+      });
+      const parsed = BodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+      }
+      const { staff_id, issued_date, expiry_date, ...rest } = parsed.data;
+      const doc = await prisma.staffDocument.create({
+        data: {
+          ...rest,
+          staff_id,
+          ...(issued_date ? { issued_date: new Date(issued_date) } : {}),
+          ...(expiry_date ? { expiry_date: new Date(expiry_date) } : {}),
+        },
+        include: { staff: { select: { id: true, name: true, role: true } } },
+      });
+      return reply.code(201).send({ success: true, document: doc });
+    }
+  );
+
   // GET /api/staff/:id/documents
   fastify.get<{ Params: { id: string } }>(
     '/api/staff/:id/documents',
