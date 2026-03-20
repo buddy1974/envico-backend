@@ -4,20 +4,19 @@ import { authenticate } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
 
 const CreateMedicationSchema = z.object({
-  service_user_id: z.number().int().positive(),
-  name:            z.string().min(1),
-  dosage:          z.string().min(1),
-  frequency:       z.string().min(1),
-  route:           z.string().min(1),
-  prescribed_by:   z.string().min(1),
-  start_date:      z.string(),
-  end_date:        z.string().optional(),
-  status:          z.enum(['ACTIVE', 'SUSPENDED', 'DISCONTINUED']).optional(),
-  notes:           z.string().optional(),
+  name:          z.string().min(1),
+  dosage:        z.string().min(1),
+  frequency:     z.string().min(1),
+  route:         z.string().min(1),
+  prescribed_by: z.string().min(1),
+  start_date:    z.string(),
+  end_date:      z.string().optional(),
+  status:        z.enum(['ACTIVE', 'SUSPENDED', 'DISCONTINUED']).optional(),
+  notes:         z.string().optional(),
 });
 
-const UpdateMedicationStatusSchema = z.object({
-  status: z.enum(['ACTIVE', 'SUSPENDED', 'DISCONTINUED']),
+const UpdateMedicationSchema = z.object({
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'DISCONTINUED']).optional(),
   notes:  z.string().optional(),
 });
 
@@ -40,11 +39,14 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
     }
   );
 
-  // POST /api/medications
-  fastify.post(
-    '/api/medications',
+  // POST /api/service-users/:id/medications
+  fastify.post<{ Params: { id: string } }>(
+    '/api/service-users/:id/medications',
     { preHandler: [authenticate] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const service_user_id = parseInt(request.params.id, 10);
+      if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
+
       const parsed = CreateMedicationSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
@@ -54,6 +56,7 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
       const medication = await prisma.medication.create({
         data: {
           ...data,
+          service_user_id,
           start_date: new Date(data.start_date),
           ...(data.end_date ? { end_date: new Date(data.end_date) } : {}),
         },
@@ -63,15 +66,15 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
     }
   );
 
-  // PATCH /api/medications/:id/status
+  // PATCH /api/medications/:id
   fastify.patch<{ Params: { id: string } }>(
-    '/api/medications/:id/status',
+    '/api/medications/:id',
     { preHandler: [authenticate] },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
 
-      const parsed = UpdateMedicationStatusSchema.safeParse(request.body);
+      const parsed = UpdateMedicationSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
       }

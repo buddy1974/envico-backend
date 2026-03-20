@@ -4,14 +4,13 @@ import { authenticate } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
 
 const CreateCarePlanSchema = z.object({
-  service_user_id: z.number().int().positive(),
-  title:           z.string().min(1),
-  description:     z.string().optional(),
-  goals:           z.array(z.any()).optional(),
-  review_date:     z.string().optional(),
-  status:          z.enum(['DRAFT', 'ACTIVE', 'UNDER_REVIEW', 'ARCHIVED']).optional(),
-  created_by:      z.string().min(1),
-  version:         z.number().int().positive().optional(),
+  title:       z.string().min(1),
+  description: z.string().optional(),
+  goals:       z.array(z.any()).optional(),
+  review_date: z.string().optional(),
+  status:      z.enum(['DRAFT', 'ACTIVE', 'UNDER_REVIEW', 'ARCHIVED']).optional(),
+  created_by:  z.string().min(1),
+  version:     z.number().int().positive().optional(),
 });
 
 const UpdateCarePlanSchema = z.object({
@@ -42,11 +41,14 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // POST /api/care-plans
-  fastify.post(
-    '/api/care-plans',
+  // POST /api/service-users/:id/care-plans
+  fastify.post<{ Params: { id: string } }>(
+    '/api/service-users/:id/care-plans',
     { preHandler: [authenticate] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const service_user_id = parseInt(request.params.id, 10);
+      if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
+
       const parsed = CreateCarePlanSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
@@ -56,6 +58,7 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
       const plan = await prisma.carePlan.create({
         data: {
           ...data,
+          service_user_id,
           goals: data.goals ?? [],
           ...(data.review_date ? { review_date: new Date(data.review_date) } : {}),
         },
