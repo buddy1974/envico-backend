@@ -26,6 +26,7 @@ import { assistantRoutes } from './routes/assistant';
 import { userRoutes } from './routes/users';
 import { locationRoutes } from './routes/locations';
 import { automationRoutes } from './routes/automation';
+import { rotaRoutes } from './routes/rota';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
@@ -115,6 +116,7 @@ export async function buildServer() {
   fastify.register(userRoutes);
   fastify.register(locationRoutes);
   fastify.register(automationRoutes);
+  fastify.register(rotaRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);

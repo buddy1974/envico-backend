@@ -106,6 +106,7 @@ model Staff {
   documents                StaffDocument[]
   training                 TrainingRecord[]
   application              RecruitmentApplication?
+  shifts                   Shift[]
 }
 
 model TaskAssignment {
@@ -144,8 +145,9 @@ model Location {
   postcode   String
   is_active  Boolean  @default(true)
   created_at DateTime @default(now())
-  users      User[]
+  users         User[]
   service_users ServiceUser[]
+  rotas         Rota[]
 
   @@map("locations")
 }
@@ -614,4 +616,76 @@ model ComplianceCheck {
   updated_at         DateTime            @default(now()) @updatedAt
 
   @@map("compliance_checks")
+}
+
+// ─── Phase 8 Enums ────────────────────────────────────────────────────────────
+
+enum ShiftType {
+  MORNING
+  AFTERNOON
+  EVENING
+  NIGHT
+  FULL_DAY
+  ON_CALL
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ─── Phase 8 models ──────────────────────────────────────────────────────────
+
+model Rota {
+  id           Int      @id @default(autoincrement())
+
+  week_start   DateTime
+  location_id  Int
+  location     Location @relation(fields: [location_id], references: [id])
+
+  created_by   String
+  published    Boolean  @default(false)
+  published_at DateTime?
+
+  notes        String?
+
+  shifts       Shift[]
+
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now()) @updatedAt
+
+  @@unique([week_start, location_id])
+  @@map("rotas")
+}
+
+model Shift {
+  id           Int         @id @default(autoincrement())
+
+  rota_id      Int
+  rota         Rota        @relation(fields: [rota_id], references: [id])
+
+  staff_id     Int
+  staff        Staff       @relation(fields: [staff_id], references: [id])
+
+  date         DateTime    // date of the shift (date only, time ignored)
+  shift_type   ShiftType   @default(FULL_DAY)
+  start_time   String      // "08:00"
+  end_time     String      // "16:00"
+  break_mins   Int         @default(30)
+
+  actual_start DateTime?
+  actual_end   DateTime?
+  hours_worked Decimal?    @db.Decimal(10, 2)
+
+  status       ShiftStatus @default(SCHEDULED)
+  notes        String?
+
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @default(now()) @updatedAt
+
+  @@map("shifts")
 }
