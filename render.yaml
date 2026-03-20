@@ -2,7 +2,7 @@ services:
   - type: web
     name: envico-backend
     runtime: node
-    buildCommand: npm install && npm run build && npx prisma generate
+    buildCommand: npm install && npx prisma generate && npm run build
     startCommand: node dist/server.js
     envVars:
       - key: NODE_ENV
