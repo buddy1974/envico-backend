@@ -29,6 +29,8 @@ import { automationRoutes } from './routes/automation';
 import { rotaRoutes } from './routes/rota';
 import { emailRoutes } from './routes/email';
 import { calendarRoutes } from './routes/calendar';
+import { gmailRoutes } from './routes/gmail';
+import { ceoRoutes } from './routes/ceo';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
@@ -121,6 +123,8 @@ export async function buildServer() {
   fastify.register(rotaRoutes);
   fastify.register(emailRoutes);
   fastify.register(calendarRoutes);
+  fastify.register(gmailRoutes);
+  fastify.register(ceoRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
