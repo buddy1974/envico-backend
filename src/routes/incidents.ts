@@ -21,6 +21,21 @@ const UpdateIncidentSchema = z.object({
 
 export async function incidentRoutes(fastify: FastifyInstance): Promise<void> {
 
+  // GET /api/incidents — all incidents across all service users
+  fastify.get(
+    '/api/incidents',
+    { preHandler: [authenticate] },
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const incidents = await prisma.incident.findMany({
+        include: {
+          service_user: { select: { id: true, first_name: true, last_name: true } },
+        },
+        orderBy: { reported_at: 'desc' },
+      });
+      return reply.code(200).send({ success: true, incidents });
+    }
+  );
+
   // GET /api/service-users/:id/incidents
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id/incidents',
