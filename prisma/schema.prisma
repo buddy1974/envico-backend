@@ -7,9 +7,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum CareType {
+  SUPPORTED_LIVING
+  DOMICILIARY
+  RESIDENTIAL
+}
+
+enum ServiceUserStatus {
+  ACTIVE
+  INACTIVE
+  DISCHARGED
+}
+
+enum CarePlanStatus {
+  DRAFT
+  ACTIVE
+  UNDER_REVIEW
+  ARCHIVED
+}
+
+enum IncidentType {
+  ACCIDENT
+  SAFEGUARDING
+  MEDICATION_ERROR
+  BEHAVIOUR
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  UNDER_INVESTIGATION
+  CLOSED
+}
+
+enum MedicationStatus {
+  ACTIVE
+  SUSPENDED
+  DISCONTINUED
+}
+
+// ─── Existing models ─────────────────────────────────────────────────────────
+
 model Referral {
-  id                Int      @id @default(autoincrement())
-  referral_id       String   @unique
+  id                Int          @id @default(autoincrement())
+  referral_id       String       @unique
   service_user_name String
   dob               DateTime
   referral_source   String
@@ -17,10 +67,12 @@ model Referral {
   referrer_contact  String
   support_needs     String
   urgency_level     String
-  status            String   @default("NEW")
-  priority_score    Int      @default(0)
-  risk_flags        Json     @default("[]")
-  created_at        DateTime @default(now())
+  status            String       @default("NEW")
+  priority_score    Int          @default(0)
+  risk_flags        Json         @default("[]")
+  created_at        DateTime     @default(now())
+
+  service_user      ServiceUser?
 
   @@map("referrals")
 }
@@ -94,14 +146,130 @@ model Escalation {
   @@map("escalations")
 }
 
-// Task 9 — Logging system
 model Log {
   id        Int      @id @default(autoincrement())
   message   String
-  level     String   @default("INFO")  // INFO | WARNING | CRITICAL
+  level     String   @default("INFO")   // INFO | WARNING | CRITICAL
   payload   Json?
   source    String   @default("SYSTEM") // SYSTEM | N8N | API
   timestamp DateTime @default(now())
 
   @@map("logs")
+}
+
+// ─── Phase 2 models ──────────────────────────────────────────────────────────
+
+model ServiceUser {
+  id               Int               @id @default(autoincrement())
+
+  // Identity
+  first_name       String
+  last_name        String
+  dob              DateTime
+  gender           String?
+  ethnicity        String?
+  primary_language String            @default("English")
+  nhs_number       String?           @unique
+
+  // Contact
+  address_line1    String?
+  address_line2    String?
+  city             String?
+  postcode         String?
+  phone            String?
+
+  // Clinical
+  gp_name          String?
+  gp_practice      String?
+  gp_phone         String?
+
+  // Next of kin
+  nok_name         String?
+  nok_relationship String?
+  nok_phone        String?
+
+  // Care classification
+  care_type        CareType          @default(SUPPORTED_LIVING)
+  status           ServiceUserStatus @default(ACTIVE)
+
+  // Link to originating referral
+  referral_id      String?           @unique
+  referral         Referral?         @relation(fields: [referral_id], references: [referral_id])
+
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @default(now()) @updatedAt
+
+  care_plans       CarePlan[]
+  incidents        Incident[]
+  medications      Medication[]
+
+  @@map("service_users")
+}
+
+model CarePlan {
+  id              Int            @id @default(autoincrement())
+
+  service_user_id Int
+  service_user    ServiceUser    @relation(fields: [service_user_id], references: [id])
+
+  title           String
+  description     String?
+  goals           Json           @default("[]")
+  review_date     DateTime?
+  status          CarePlanStatus @default(DRAFT)
+  created_by      String
+  version         Int            @default(1)
+
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @default(now()) @updatedAt
+
+  @@map("care_plans")
+}
+
+model Incident {
+  id              Int              @id @default(autoincrement())
+
+  service_user_id Int
+  service_user    ServiceUser      @relation(fields: [service_user_id], references: [id])
+
+  type            IncidentType
+  severity        IncidentSeverity
+  description     String
+  location        String?
+  witnesses       String?
+
+  reported_by     String
+  reported_at     DateTime         @default(now())
+
+  status          IncidentStatus   @default(OPEN)
+  action_taken    String?
+
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+
+  @@map("incidents")
+}
+
+model Medication {
+  id              Int              @id @default(autoincrement())
+
+  service_user_id Int
+  service_user    ServiceUser      @relation(fields: [service_user_id], references: [id])
+
+  name            String
+  dosage          String
+  frequency       String
+  route           String
+
+  prescribed_by   String
+  start_date      DateTime
+  end_date        DateTime?
+
+  status          MedicationStatus @default(ACTIVE)
+  notes           String?
+
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+
+  @@map("medications")
 }

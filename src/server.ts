@@ -9,6 +9,10 @@ import { activityRoutes } from './routes/activity';
 import { staffRoutes } from './routes/staff';
 import { authRoutes } from './routes/auth';
 import { escalationRoutes } from './routes/escalations';
+import { serviceUserRoutes } from './routes/service-users';
+import { carePlanRoutes } from './routes/care-plans';
+import { incidentRoutes } from './routes/incidents';
+import { medicationRoutes } from './routes/medications';
 
 import { registerHandlers } from './automation/handlers';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
@@ -67,6 +71,10 @@ export async function buildServer() {
   fastify.register(activityRoutes);
   fastify.register(staffRoutes);
   fastify.register(escalationRoutes, { prefix: '/api' });
+  fastify.register(serviceUserRoutes);
+  fastify.register(carePlanRoutes);
+  fastify.register(incidentRoutes);
+  fastify.register(medicationRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
