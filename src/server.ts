@@ -25,8 +25,10 @@ import { complianceRoutes } from './routes/compliance';
 import { assistantRoutes } from './routes/assistant';
 import { userRoutes } from './routes/users';
 import { locationRoutes } from './routes/locations';
+import { automationRoutes } from './routes/automation';
 
 import { registerHandlers } from './automation/handlers';
+import { startCronJobs } from './automation/cron';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
 import { seedLocations } from './scripts/seedLocations';
 
@@ -112,6 +114,7 @@ export async function buildServer() {
   fastify.register(assistantRoutes);
   fastify.register(userRoutes);
   fastify.register(locationRoutes);
+  fastify.register(automationRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
@@ -139,6 +142,7 @@ async function start() {
     }
 
     await seedLocations();
+    startCronJobs();
   } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
       console.error(`PORT ${PORT} already in use — kill the existing process and retry`);
