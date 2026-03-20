@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyEnv from '@fastify/env';
+import rateLimit from '@fastify/rate-limit';
 
 import { healthRoutes } from './routes/health';
 import { referralRoutes } from './routes/referrals';
@@ -22,9 +23,14 @@ import { trainingRoutes } from './routes/training';
 import { recruitmentRoutes } from './routes/recruitment';
 import { complianceRoutes } from './routes/compliance';
 import { assistantRoutes } from './routes/assistant';
+import { userRoutes } from './routes/users';
+import { locationRoutes } from './routes/locations';
 
 import { registerHandlers } from './automation/handlers';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
+import { seedLocations } from './scripts/seedLocations';
+
+import { FastifyRequest } from 'fastify';
 
 const envSchema = {
   type: 'object',
@@ -73,6 +79,17 @@ export async function buildServer() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
+  // Global rate limit — 100 req/min per IP
+  await fastify.register(rateLimit, {
+    global: true,
+    max: 100,
+    timeWindow: '1 minute',
+    errorResponseBuilder: (_request: FastifyRequest, context: { after: string }) => ({
+      success: false,
+      error: `Rate limit exceeded. Try again in ${context.after}`,
+    }),
+  });
+
   fastify.register(healthRoutes);
   fastify.register(referralRoutes);
   fastify.register(authRoutes);
@@ -93,6 +110,8 @@ export async function buildServer() {
   fastify.register(recruitmentRoutes);
   fastify.register(complianceRoutes);
   fastify.register(assistantRoutes);
+  fastify.register(userRoutes);
+  fastify.register(locationRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
@@ -118,6 +137,8 @@ async function start() {
     if (process.env.NODE_ENV !== 'production') {
       await ensureCriticalTestTask();
     }
+
+    await seedLocations();
   } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
       console.error(`PORT ${PORT} already in use — kill the existing process and retry`);

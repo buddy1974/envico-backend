@@ -120,14 +120,34 @@ model TaskAssignment {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  password   String
-  role       String   // ADMIN | MANAGER | STAFF
-  created_at DateTime @default(now())
+  id                     Int       @id @default(autoincrement())
+  name                   String
+  email                  String    @unique
+  password               String
+  role                   String    // ADMIN | MANAGER | STAFF
+  created_at             DateTime  @default(now())
+  is_active              Boolean   @default(true)
+  last_login             DateTime?
+  location_id            Int?
+  location               Location? @relation(fields: [location_id], references: [id])
+  refresh_token          String?   @unique
+  password_reset_token   String?   @unique
+  password_reset_expires DateTime?
 
   @@map("users")
+}
+
+model Location {
+  id         Int      @id @default(autoincrement())
+  name       String
+  address    String
+  postcode   String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  users      User[]
+  service_users ServiceUser[]
+
+  @@map("locations")
 }
 
 model ActivityLog {
@@ -199,6 +219,9 @@ model ServiceUser {
   // Link to originating referral
   referral_id      String?           @unique
   referral         Referral?         @relation(fields: [referral_id], references: [referral_id])
+
+  location_id      Int?
+  location         Location?         @relation(fields: [location_id], references: [id])
 
   created_at       DateTime          @default(now())
   updated_at       DateTime          @default(now()) @updatedAt
