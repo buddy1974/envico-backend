@@ -56,7 +56,7 @@ export async function buildServer() {
   });
 
   fastify.register(cors, {
-    origin: ['http://localhost:5173', 'https://envico-dashboard.vercel.app', 'https://envico.maxpromo.digital'],
+    origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
