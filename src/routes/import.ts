@@ -5,6 +5,7 @@ import {
   parseFile,
   analyseWithAI,
   importRows,
+  generatePreview,
   getTemplateCsv,
   buildSheetCsvUrl,
   ImportResult,
@@ -89,15 +90,16 @@ export async function importRoutes(fastify: FastifyInstance): Promise<void> {
 
       const sampleRows = parsed.rows.slice(0, 5);
       const analysis   = await analyseWithAI(parsed.headers, sampleRows, parsedModule.data.module);
+      const preview    = generatePreview(parsed.rows, analysis.mapping, parsedModule.data.module);
 
       return reply.code(200).send({
         success: true,
         data: {
           headers:   parsed.headers,
           row_count: parsed.rows.length,
-          sample:    sampleRows,
           analysis,
-          all_rows:  parsed.rows,
+          preview,               // 5 mapped rows with per-row issue flags
+          all_rows:  parsed.rows, // full raw data for confirmed execute
         },
       });
     }
@@ -181,6 +183,7 @@ export async function importRoutes(fastify: FastifyInstance): Promise<void> {
 
       const sampleRows = fileData.rows.slice(0, 5);
       const analysis   = await analyseWithAI(fileData.headers, sampleRows, module);
+      const preview    = generatePreview(fileData.rows, analysis.mapping, module);
 
       // Auto-execute if AI estimates >= 85% success
       if (analysis.success_estimate >= 85) {
@@ -189,11 +192,11 @@ export async function importRoutes(fastify: FastifyInstance): Promise<void> {
 
         return reply.code(200).send({
           success: true,
-          data:    { auto_imported: true, analysis, result },
+          data:    { auto_imported: true, analysis, preview, result },
         });
       }
 
-      // Low confidence — return analysis for manual review
+      // Low confidence — return analysis + preview for manual review
       return reply.code(200).send({
         success: true,
         data: {
@@ -201,8 +204,8 @@ export async function importRoutes(fastify: FastifyInstance): Promise<void> {
           reason:        'Confidence below 85% — manual mapping required',
           headers:       fileData.headers,
           row_count:     fileData.rows.length,
-          sample:        sampleRows,
           analysis,
+          preview,
           all_rows:      fileData.rows,
         },
       });
