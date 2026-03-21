@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../middleware/authMiddleware';
+import { sendPushToAll } from './notifications';
 import prisma from '../db/prisma';
 
 type FamilyUser = {
@@ -163,6 +164,14 @@ export async function familyRoutes(fastify: FastifyInstance): Promise<void> {
           details:   `Message from ${msg.from_user.name}: "${parsed.data.message.substring(0, 100)}${parsed.data.message.length > 100 ? '…' : ''}"`,
         },
       });
+
+      // Push notification to care team
+      const suName = `${msg.service_user.first_name} ${msg.service_user.last_name}`;
+      await sendPushToAll({
+        title: `💬 Family Message — ${suName}`,
+        body:  parsed.data.message.slice(0, 100),
+        url:   '/family',
+      }).catch(() => null);
 
       return reply.code(201).send({ success: true, data: msg });
     }

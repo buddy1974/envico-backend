@@ -758,3 +758,26 @@ model ImportLog {
 
   @@map("import_logs")
 }
+
+model PushSubscription {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  created_at DateTime @default(now())
+
+  @@map("push_subscriptions")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  author     String
+  rating     Int      // 1-5
+  text       String
+  source     String   @default("Direct")  // Google | Trustpilot | Direct | Other
+  approved   Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@map("reviews")
+}

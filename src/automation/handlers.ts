@@ -3,6 +3,7 @@ import { logActivity } from '../services/activityService';
 import { createTask } from '../services/taskService';
 import { broadcast } from '../realtime/socket';
 import { notify } from '../services/notificationService';
+import { sendPushToAll } from '../routes/notifications';
 import prisma from '../db/prisma';
 
 interface TaskCreatedPayload {
@@ -68,13 +69,24 @@ export function registerHandlers(): void {
 
   // ─── Phase 1 handlers ────────────────────────────────────────────────────
 
-  on<TaskCreatedPayload>('TASK_CREATED', (payload) => {
+  on<TaskCreatedPayload>('TASK_CREATED', async (payload) => {
     broadcast('TASK_CREATED', payload);
+    // Push notification for CRITICAL tasks
+    await sendPushToAll({
+      title: '📋 New Task',
+      body:  payload.title,
+      url:   '/',
+    }).catch(() => null);
   });
 
   on<TaskAssignedPayload>('TASK_ASSIGNED', async (payload) => {
     broadcast('TASK_ASSIGNED', payload);
     await logActivity('TASK', payload.taskId, 'NOTIFIED', JSON.stringify({ message: 'Staff notified' }));
+    await sendPushToAll({
+      title: '📋 Task Assigned',
+      body:  `Task #${payload.taskId} has been assigned`,
+      url:   '/',
+    }).catch(() => null);
   });
 
   on<TaskStatusChangedPayload>('TASK_STATUS_CHANGED', async (payload) => {
@@ -111,6 +123,15 @@ export function registerHandlers(): void {
 
   on<IncidentCreatedPayload>('INCIDENT_CREATED', async (payload) => {
     broadcast('INCIDENT_CREATED', payload);
+
+    // Push notification for CRITICAL / HIGH incidents
+    if (payload.severity === 'CRITICAL' || payload.severity === 'HIGH') {
+      await sendPushToAll({
+        title: `🚨 ${payload.severity} Incident`,
+        body:  `${payload.type} — ${payload.description.slice(0, 80)}`,
+        url:   '/incidents',
+      }).catch(() => null);
+    }
 
     // Get service user name
     let serviceUserName = `ID ${payload.service_user_id}`;
