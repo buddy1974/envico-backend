@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyEnv from '@fastify/env';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 
 import { healthRoutes } from './routes/health';
 import { referralRoutes } from './routes/referrals';
@@ -32,6 +33,7 @@ import { calendarRoutes } from './routes/calendar';
 import { gmailRoutes } from './routes/gmail';
 import { ceoRoutes } from './routes/ceo';
 import { familyRoutes } from './routes/family';
+import { importRoutes } from './routes/import';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
@@ -82,6 +84,10 @@ export async function buildServer() {
     dotenv: true,
   });
 
+  fastify.register(multipart, {
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  });
+
   fastify.register(cors, {
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -127,6 +133,7 @@ export async function buildServer() {
   fastify.register(gmailRoutes);
   fastify.register(ceoRoutes);
   fastify.register(familyRoutes);
+  fastify.register(importRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);

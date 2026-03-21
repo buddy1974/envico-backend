@@ -744,3 +744,17 @@ model FamilyMessage {
 
   @@map("family_messages")
 }
+
+model ImportLog {
+  id          Int      @id @default(autoincrement())
+  module      String
+  total       Int
+  imported    Int
+  skipped     Int
+  errors      Json     @default("[]")
+  imported_by String
+  source      String   @default("FILE")   // FILE | GOOGLE_SHEET | MANUAL
+  created_at  DateTime @default(now())
+
+  @@map("import_logs")
+}
