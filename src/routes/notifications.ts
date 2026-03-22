@@ -5,15 +5,23 @@ import { authenticate, requireRole } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
 
 // ─── VAPID setup ──────────────────────────────────────────────────────────────
-// Keys are read from env — fall back to hardcoded public keys for local dev.
 // Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Render environment.
-const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY
-  ?? 'BDmWEqjW6_mOMGJT2WCqAmmModQ8a_CAZhejY2bUAjjv62pTHwnMorkBl_ZNM7UlZyru2yssxiCEmomGLH9lCAE';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY
-  ?? 'BTW-Grvk8b7D9X00VlrjJzOlkFvARxbIF0PzHW3wCQQ';
-const VAPID_EMAIL   = process.env.VAPID_EMAIL ?? 'mailto:ops@envicosl.co.uk';
+// Init is guarded so missing keys do not crash the server at startup.
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY ?? null;
 
-webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      'mailto:info@envicosl.co.uk',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY,
+    );
+  } catch (err) {
+    console.warn('[notifications] VAPID init failed — push notifications disabled:', err);
+  }
+} else {
+  console.warn('[notifications] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — push notifications disabled');
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const SubscribeSchema = z.object({
@@ -33,6 +41,7 @@ const SendSchema = z.object({
 
 // ─── Helper: send to all subscriptions, remove dead ones ─────────────────────
 export async function sendPushToAll(payload: { title: string; body: string; url?: string }): Promise<void> {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
   const subs = await prisma.pushSubscription.findMany();
   if (!subs.length) return;
 
