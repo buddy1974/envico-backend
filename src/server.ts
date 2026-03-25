@@ -37,6 +37,7 @@ import { importRoutes } from './routes/import';
 import { cqcRoutes } from './routes/cqc';
 import { reviewRoutes } from './routes/reviews';
 import { notificationRoutes } from './routes/notifications';
+import { aiRoutes } from './routes/ai';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
@@ -140,6 +141,7 @@ export async function buildServer() {
   fastify.register(cqcRoutes);
   fastify.register(reviewRoutes);
   fastify.register(notificationRoutes);
+  fastify.register(aiRoutes, { prefix: '/api/ai' });
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
