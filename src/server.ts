@@ -38,11 +38,13 @@ import { cqcRoutes } from './routes/cqc';
 import { reviewRoutes } from './routes/reviews';
 import { notificationRoutes } from './routes/notifications';
 import { aiRoutes } from './routes/ai';
+import { smartInputRoutes } from './routes/smart-input';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
 import { seedLocations } from './scripts/seedLocations';
+import { seedUsers } from './scripts/seedUsers';
 
 import { FastifyRequest } from 'fastify';
 
@@ -142,6 +144,7 @@ export async function buildServer() {
   fastify.register(reviewRoutes);
   fastify.register(notificationRoutes);
   fastify.register(aiRoutes, { prefix: '/api/ai' });
+  fastify.register(smartInputRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
@@ -168,11 +171,12 @@ async function start() {
       await ensureCriticalTestTask();
     }
 
+    await seedUsers();      // ensure default accounts exist before anything else
     await seedLocations();
     startCronJobs();
   } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
-      console.error(`PORT ${PORT} already in use — kill the existing process and retry`);
+      console.error(`PORT ${PORT} already in use - kill the existing process and retry`);
       process.exit(1);
     }
     fastify.log.error(err);
