@@ -1,9 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from '../db/prisma';
+import { company } from '../config/company';
 
 function getClient() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
-const SYSTEM_PROMPT = `You are an AI assistant for Envico CareOS 2026, an enterprise care management system for Envico Supported Living LTD, a CQC-registered supported living provider in the UK based in Hayes, Middlesex.
+const SYSTEM_PROMPT = `You are an AI assistant for ${company.name} CareOS, an enterprise care management system for ${company.name}, a CQC-registered supported living provider in the UK based in ${company.address}.
+CEO: ${company.ceo} | Phone: ${company.phone} | CQC ID: ${company.cqc_id}
 
 You support adults with learning disabilities, autism, ADHD, acquired brain injuries, and mental health conditions.
 

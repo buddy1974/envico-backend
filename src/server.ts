@@ -41,6 +41,7 @@ import { notificationRoutes } from './routes/notifications';
 import { aiRoutes } from './routes/ai';
 import { smartInputRoutes } from './routes/smart-input';
 import { publicAssistantRoutes } from './routes/public-assistant';
+import { configRoutes } from './routes/config';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
@@ -159,6 +160,7 @@ export async function buildServer() {
   fastify.register(aiRoutes, { prefix: '/api/ai' });
   fastify.register(smartInputRoutes);
   fastify.register(publicAssistantRoutes);
+  fastify.register(configRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
@@ -190,12 +192,8 @@ async function start() {
     try { await seedDemoData(); } catch (e: any) { console.error('[startup] seedDemoData failed:', e.message); }
     try { await seedLocations(); } catch (e: any) { console.error('[startup] seedLocations failed:', e.message); }
     startCronJobs();
-  } catch (err: any) {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`PORT ${PORT} already in use - kill the existing process and retry`);
-      process.exit(1);
-    }
-    console.error('[startup] Server failed to start:', err.message);
+  } catch (err) {
+    console.error('[startup] Fatal error:', err);
     process.exit(1);
   }
 }
