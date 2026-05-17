@@ -32,9 +32,9 @@ function getProductionUsers(): SeedUser[] {
   const staffPwd   = process.env.SEED_STAFF_PASSWORD   ?? 'Envico@Staff2024!';
 
   return [
-    { name: 'Envico Admin',   email: 'admin@envicosl.co.uk',   password: adminPwd,   role: 'ADMIN'   },
-    { name: 'Envico Manager', email: 'manager@envicosl.co.uk', password: managerPwd, role: 'MANAGER' },
-    { name: 'Envico Staff',   email: 'staff@envicosl.co.uk',   password: staffPwd,   role: 'STAFF'   },
+    { name: 'Engelbert Maxplan', email: 'admin@envicosl.co.uk',   password: adminPwd,   role: 'ADMIN'   },
+    { name: 'Sarah Johnson',     email: 'manager@envicosl.co.uk', password: managerPwd, role: 'MANAGER' },
+    { name: 'Michael Okafor',    email: 'staff@envicosl.co.uk',   password: staffPwd,   role: 'STAFF'   },
   ];
 }
 
@@ -55,6 +55,11 @@ export async function seedUsers(): Promise<void> {
   for (const u of usersToSeed) {
     const existing = await prisma.user.findUnique({ where: { email: u.email } });
     if (existing) {
+      // Always sync name so display name updates are reflected on next deploy
+      if (existing.name !== u.name) {
+        await prisma.user.update({ where: { email: u.email }, data: { name: u.name } });
+        console.log(`[seedUsers] Updated name for ${u.email}: ${u.name}`);
+      }
       skipped++;
       continue;
     }
