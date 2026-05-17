@@ -99,18 +99,25 @@ export async function rotaRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // GET /api/rotas/current — rota for the current week (all locations or one)
+  // GET /api/rotas/current — rota for a given week (defaults to current week)
   fastify.get(
     '/api/rotas/current',
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const query = request.query as { location_id?: string };
+      const query = request.query as { location_id?: string; week_start?: string };
 
-      // Monday of the current week (UTC)
-      const now  = new Date();
-      const day  = now.getUTCDay(); // 0=Sun
-      const diff = day === 0 ? -6 : 1 - day;
-      const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + diff));
+      // Use provided week_start or fall back to current Monday (UTC)
+      let monday: Date;
+      if (query.week_start) {
+        monday = new Date(query.week_start);
+        monday.setUTCHours(0, 0, 0, 0);
+        const d = monday.getUTCDay();
+        monday.setUTCDate(monday.getUTCDate() + (d === 0 ? -6 : 1 - d));
+      } else {
+        const now = new Date();
+        const d   = now.getUTCDay();
+        monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + (d === 0 ? -6 : 1 - d)));
+      }
 
       const where: Record<string, unknown> = { week_start: monday };
       if (query.location_id) where.location_id = Number(query.location_id);
