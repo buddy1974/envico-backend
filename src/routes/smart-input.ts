@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
 import { authenticate } from '../middleware/authMiddleware';
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClaude() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 // ─── Section field schemas ────────────────────────────────────────────────────
 
@@ -101,7 +101,7 @@ Return ONLY valid JSON in this exact format:
   "missing": ["list", "of", "fields", "that", "were", "not", "found", "but", "are", "important"]
 }`;
 
-  const res = await claude.messages.create({
+  const res = await getClaude().messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
     system: systemPrompt,
@@ -202,7 +202,7 @@ export async function smartInputRoutes(fastify: FastifyInstance): Promise<void> 
       const schema = SECTION_SCHEMAS[section] ?? { description: 'General entry', fields: [] };
 
       try {
-        const res = await claude.messages.create({
+        const res = await getClaude().messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 800,
           system: `You are the AI data processor for Envico CareOS. Refine the structured fields based on the correction provided. Return only valid JSON with the updated fields object.`,
@@ -257,7 +257,7 @@ export async function smartInputRoutes(fastify: FastifyInstance): Promise<void> 
       };
 
       try {
-        const res = await claude.messages.create({
+        const res = await getClaude().messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 1500,
           system: `You are a professional report writer for Envico Supported Living Ltd, a UK CQC-registered care provider. Write formal, accurate, professional reports suitable for regulatory inspection. Use UK English. Date format: DD/MM/YYYY.`,

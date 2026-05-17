@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClient() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ Subject: ${subject}
 
 ${body}`;
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: CLASSIFY_SYSTEM,
@@ -277,7 +277,7 @@ Tone: ${tone}. Keep emails concise, clear, and person-centred where applicable.`
 Subject hint: ${subject_hint}
 Context: ${context}`;
 
-      const response = await client.messages.create({
+      const response = await getClient().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: systemPrompt,

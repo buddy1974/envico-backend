@@ -3,7 +3,7 @@ import type { OAuth2Client } from 'google-auth-library';
 import Anthropic from '@anthropic-ai/sdk';
 import { getValidToken } from './google';
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClaude() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 function calClient(auth: OAuth2Client) {
   return google.calendar({ version: 'v3', auth });
@@ -124,7 +124,7 @@ Provide:
 
 Be brief and actionable — bullet points preferred.`;
 
-  const res = await claude.messages.create({
+  const res = await getClaude().messages.create({
     model:     'claude-sonnet-4-6',
     max_tokens: 512,
     system:    'You are a personal assistant for the CEO of Envico Supported Living Ltd. Generate practical, concise meeting prep notes.',

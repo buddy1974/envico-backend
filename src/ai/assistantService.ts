@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from '../db/prisma';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClient() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 const SYSTEM_PROMPT = `You are an AI assistant for Envico CareOS 2026, an enterprise care management system for Envico Supported Living LTD, a CQC-registered supported living provider in the UK based in Hayes, Middlesex.
 
@@ -78,7 +78,7 @@ export async function askAssistant(question: string, contextType: string, contex
     contextMessage += `\nAdditional context: ${JSON.stringify(contextData)}`;
   }
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: SYSTEM_PROMPT,

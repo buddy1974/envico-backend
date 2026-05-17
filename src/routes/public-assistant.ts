@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClient() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 const AskSchema = z.object({
   question: z.string().min(1).max(1000),
@@ -67,7 +67,7 @@ export async function publicAssistantRoutes(fastify: FastifyInstance): Promise<v
       }
 
       try {
-        const response = await client.messages.create({
+        const response = await getClient().messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 400,
           system: ENVICO_PERSONA,

@@ -6,7 +6,7 @@ import prisma from '../db/prisma';
 import { getTodayEvents } from '../lib/calendar';
 import { draftEmail } from '../lib/gmail';
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClaude() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 type AuthUser = { id: number; role: string; email: string };
 
@@ -75,7 +75,7 @@ async function execChaseInvoice(invoiceId?: number | null) {
       const user   = `${inv.service_user.first_name} ${inv.service_user.last_name}`;
       const amount = `£${Number(inv.amount_total).toFixed(2)}`;
 
-      const res = await claude.messages.create({
+      const res = await getClaude().messages.create({
         model:      'claude-sonnet-4-6',
         max_tokens: 400,
         system:     'You are writing on behalf of Envico Supported Living Ltd. Draft a professional, firm but polite invoice chase email.',
@@ -137,7 +137,7 @@ Overdue invoices: ${overdueInvoices.map((i) => `${i.invoice_number} £${Number(i
 
 Write a professional report with sections: Executive Summary, Care Operations, Finance, HR & Compliance, Actions Required.`;
 
-  const res = await claude.messages.create({
+  const res = await getClaude().messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 1500,
     system:     'You are a report writer for the CEO of Envico Supported Living Ltd, a CQC-registered care provider.',
@@ -174,7 +174,7 @@ type CommandResult = {
 };
 
 async function classifyCommand(command: string): Promise<CommandResult> {
-  const res = await claude.messages.create({
+  const res = await getClaude().messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 512,
     system:     COMMAND_SYSTEM,
@@ -245,7 +245,7 @@ Today's calendar: ${calendarConnected ? calendarToday.map((e) => `${e.start} - $
 
 Write a professional briefing with: Good morning greeting, Today's priorities, Items needing immediate action, Key metrics snapshot. Keep it to 3-4 paragraphs.`;
 
-      const res = await claude.messages.create({
+      const res = await getClaude().messages.create({
         model:      'claude-sonnet-4-6',
         max_tokens: 1024,
         system:     'You are the personal AI assistant for the CEO of Envico Supported Living Ltd.',
@@ -328,7 +328,7 @@ Write a professional briefing with: Good morning greeting, Today's priorities, I
             const context = (params.context as string) || command;
             const tone    = (params.tone    as string) || 'professional';
 
-            const emailRes = await claude.messages.create({
+            const emailRes = await getClaude().messages.create({
               model:      'claude-sonnet-4-6',
               max_tokens: 600,
               system:     `You are an email writer for Envico Supported Living Ltd. Write a ${tone} email.`,

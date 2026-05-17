@@ -2,7 +2,8 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import Anthropic from '@anthropic-ai/sdk';
 import { authenticate } from '../middleware/authMiddleware';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Lazy init — server must start even if ANTHROPIC_API_KEY is not yet set in env
+function getAI() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 // ─── Route 1: POST /ocr ────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ async function ocrHandler(request: FastifyRequest, reply: FastifyReply) {
     return reply.code(400).send({ success: false, error: `context must be one of: ${validContexts.join(', ')}` });
   }
 
-  const response = await anthropic.messages.create({
+  const response = await getAI().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: OCR_SYSTEM_PROMPT,
@@ -202,7 +203,7 @@ async function careWriterHandler(request: FastifyRequest, reply: FastifyReply) {
 
   const instruction = CARE_WRITER_INSTRUCTIONS[body.field];
 
-  const response = await anthropic.messages.create({
+  const response = await getAI().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: CARE_WRITER_SYSTEM_PROMPT,

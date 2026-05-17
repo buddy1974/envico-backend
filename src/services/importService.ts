@@ -2,7 +2,7 @@ import XLSX from 'xlsx';
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from '../db/prisma';
 
-const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClaude() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
 // ─── Module field definitions ─────────────────────────────────────────────────
 // All module keys use underscores to match route params
@@ -251,7 +251,7 @@ Respond with VALID JSON ONLY — no markdown, no code fences:
   "summary": "47 service users ready to import. DOB column needs UK date format fix."
 }`;
 
-  const response = await claude.messages.create({
+  const response = await getClaude().messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 1500,
     system:     'You are a data migration expert for UK care management systems. Always respond with valid JSON only. No prose, no markdown.',

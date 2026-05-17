@@ -185,16 +185,17 @@ async function start() {
       await ensureCriticalTestTask();
     }
 
-    await seedUsers();      // ensure default accounts exist before anything else
-    await seedDemoData();    // demo family account + sample care data
-    await seedLocations();
+    // Seed scripts — wrapped individually so a seed failure never kills the server
+    try { await seedUsers(); } catch (e: any) { console.error('[startup] seedUsers failed:', e.message); }
+    try { await seedDemoData(); } catch (e: any) { console.error('[startup] seedDemoData failed:', e.message); }
+    try { await seedLocations(); } catch (e: any) { console.error('[startup] seedLocations failed:', e.message); }
     startCronJobs();
   } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
       console.error(`PORT ${PORT} already in use - kill the existing process and retry`);
       process.exit(1);
     }
-    fastify.log.error(err);
+    console.error('[startup] Server failed to start:', err.message);
     process.exit(1);
   }
 }
