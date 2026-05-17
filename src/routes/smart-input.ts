@@ -48,6 +48,22 @@ const SECTION_SCHEMAS: Record<string, { fields: string[]; description: string }>
     description: 'Message from a family member to the care team about their loved one',
     fields: ['subject', 'message', 'urgency', 'preferred_callback', 'specific_concerns'],
   },
+  recruitment: {
+    description: 'Job application or recruitment record',
+    fields: ['first_name', 'last_name', 'email', 'phone', 'role_applied', 'interview_date', 'notes'],
+  },
+  training: {
+    description: 'Staff training or certification record',
+    fields: ['training_name', 'training_type', 'provider', 'completed_date', 'expiry_date', 'status', 'notes'],
+  },
+  'staff-doc': {
+    description: 'Staff compliance document (DBS, right to work, etc)',
+    fields: ['title', 'document_type', 'reference_no', 'issued_date', 'expiry_date', 'status', 'notes'],
+  },
+  payroll: {
+    description: 'Payroll or timesheet record',
+    fields: ['staff_name', 'period_start', 'period_end', 'hours_worked', 'hourly_rate', 'overtime_hours', 'deductions', 'notes'],
+  },
 };
 
 // ─── Validation schemas ───────────────────────────────────────────────────────
