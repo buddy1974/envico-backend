@@ -208,4 +208,121 @@ export async function familyRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(200).send({ success: true, data: messages });
     }
   );
+
+  // POST /api/family/invite — ADMIN/MANAGER creates a family portal account
+  // and returns credentials (email integration optional — falls back to response)
+  fastify.post(
+    '/api/family/invite',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const user = getRequestUser(request);
+      if (!['ADMIN', 'MANAGER'].includes(user.role)) {
+        return reply.code(403).send({ success: false, error: 'Admin or Manager access required' });
+      }
+
+      const Schema = z.object({
+        family_name:     z.string().min(1),
+        family_email:    z.string().email(),
+        service_user_id: z.number().int().positive(),
+        send_email:      z.boolean().optional().default(false),
+      });
+
+      const parsed = Schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: 'Validation failed', details: parsed.error.flatten().fieldErrors });
+      }
+
+      const { family_name, family_email, service_user_id } = parsed.data;
+
+      // Verify service user exists
+      const serviceUser = await prisma.serviceUser.findUnique({
+        where: { id: service_user_id },
+        select: { id: true, first_name: true, last_name: true },
+      });
+      if (!serviceUser) {
+        return reply.code(404).send({ success: false, error: 'Service user not found' });
+      }
+
+      // Check if family account already exists for this email
+      const existing = await prisma.user.findUnique({ where: { email: family_email } });
+      if (existing) {
+        // If already linked to this service user, just return success
+        if (existing.family_service_user_id === service_user_id && existing.role === 'FAMILY') {
+          return reply.code(200).send({
+            success: true,
+            message: 'Family account already exists for this service user',
+            email: family_email,
+            already_existed: true,
+          });
+        }
+        return reply.code(409).send({ success: false, error: 'An account with this email already exists' });
+      }
+
+      // Generate a secure temporary password
+      const bcrypt = await import('bcrypt');
+      const tempPassword = `Envico${Math.random().toString(36).slice(2, 8).toUpperCase()}!`;
+      const hashed = await bcrypt.hash(tempPassword, 10);
+
+      const familyUser = await prisma.user.create({
+        data: {
+          name:                  family_name,
+          email:                 family_email,
+          password:              hashed,
+          role:                  'FAMILY',
+          is_active:             true,
+          family_service_user_id: service_user_id,
+        },
+        select: { id: true, name: true, email: true, role: true, family_service_user_id: true },
+      });
+
+      // Log the provisioning
+      await prisma.activityLog.create({
+        data: {
+          entity:    'SERVICE_USER',
+          entity_id: service_user_id,
+          action:    'FAMILY_ACCESS_GRANTED',
+          details:   `Family portal access granted to ${family_name} (${family_email}) by ${user.email}`,
+        },
+      }).catch(() => null);
+
+      const suName = `${serviceUser.first_name} ${serviceUser.last_name}`;
+
+      return reply.code(201).send({
+        success:       true,
+        message:       `Family portal account created for ${family_name}`,
+        service_user:  suName,
+        credentials: {
+          email:    family_email,
+          password: tempPassword,
+          portal_url: 'https://envicosl.co.uk/portal/family',
+          note: 'Share these credentials securely with the family member. They can change their password after first login.',
+        },
+        user: familyUser,
+      });
+    }
+  );
+
+  // GET /api/family/accounts — list all FAMILY accounts (ADMIN/MANAGER only)
+  fastify.get(
+    '/api/family/accounts',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const user = getRequestUser(request);
+      if (!['ADMIN', 'MANAGER'].includes(user.role)) {
+        return reply.code(403).send({ success: false, error: 'Admin or Manager access required' });
+      }
+
+      const accounts = await prisma.user.findMany({
+        where: { role: 'FAMILY' },
+        select: {
+          id: true, name: true, email: true, is_active: true,
+          family_service_user_id: true, created_at: true, last_login: true,
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      return reply.code(200).send({ success: true, data: accounts });
+    }
+  );
+
 }
