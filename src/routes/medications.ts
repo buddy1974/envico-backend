@@ -1,7 +1,10 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, requireRole } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
+
+// FAMILY role is blocked from all medication endpoints — use /api/family/my-service-user instead
+const STAFF_ONLY = [authenticate, requireRole(['ADMIN', 'MANAGER', 'STAFF'])];
 
 const CreateMedicationSchema = z.object({
   name:          z.string().min(1),
@@ -25,7 +28,7 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
   // GET /api/medications — all medications across all service users
   fastify.get(
     '/api/medications',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       const medications = await prisma.medication.findMany({
         include: {
@@ -40,7 +43,7 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
   // POST /api/medications — create medication (service_user_id in body)
   fastify.post(
     '/api/medications',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const BodySchema = CreateMedicationSchema.extend({
         service_user_id: z.number().int().positive(),
@@ -68,7 +71,7 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
   // GET /api/service-users/:id/medications
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id/medications',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const service_user_id = parseInt(request.params.id, 10);
       if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -85,7 +88,7 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
   // POST /api/service-users/:id/medications
   fastify.post<{ Params: { id: string } }>(
     '/api/service-users/:id/medications',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const service_user_id = parseInt(request.params.id, 10);
       if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -112,7 +115,7 @@ export async function medicationRoutes(fastify: FastifyInstance): Promise<void> 
   // PATCH /api/medications/:id
   fastify.patch<{ Params: { id: string } }>(
     '/api/medications/:id',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) return reply.code(400).send({ success: false, error: 'Invalid id' });

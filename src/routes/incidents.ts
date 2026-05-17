@@ -1,7 +1,10 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, requireRole } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
+
+// FAMILY role blocked — incident data is staff-only
+const STAFF_ONLY = [authenticate, requireRole(['ADMIN', 'MANAGER', 'STAFF'])];
 
 const CreateIncidentSchema = z.object({
   type:         z.enum(['ACCIDENT', 'SAFEGUARDING', 'MEDICATION_ERROR', 'BEHAVIOUR', 'OTHER']),
@@ -24,7 +27,7 @@ export async function incidentRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/incidents — all incidents across all service users
   fastify.get(
     '/api/incidents',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       const incidents = await prisma.incident.findMany({
         include: {
@@ -39,7 +42,7 @@ export async function incidentRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/service-users/:id/incidents
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id/incidents',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const service_user_id = parseInt(request.params.id, 10);
       if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -56,7 +59,7 @@ export async function incidentRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/service-users/:id/incidents
   fastify.post<{ Params: { id: string } }>(
     '/api/service-users/:id/incidents',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const service_user_id = parseInt(request.params.id, 10);
       if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -82,7 +85,7 @@ export async function incidentRoutes(fastify: FastifyInstance): Promise<void> {
   // PATCH /api/incidents/:id
   fastify.patch<{ Params: { id: string } }>(
     '/api/incidents/:id',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) return reply.code(400).send({ success: false, error: 'Invalid id' });

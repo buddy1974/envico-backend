@@ -1,7 +1,10 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, requireRole } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
+
+// FAMILY role blocked — use /api/family/my-service-user for care plan access
+const STAFF_ONLY = [authenticate, requireRole(['ADMIN', 'MANAGER', 'STAFF'])];
 
 const CreateCarePlanSchema = z.object({
   title:       z.string().min(1),
@@ -27,7 +30,7 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/care-plans — all care plans across all service users
   fastify.get(
     '/api/care-plans',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       const care_plans = await prisma.carePlan.findMany({
         include: {
@@ -42,7 +45,7 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/care-plans — create care plan (service_user_id in body)
   fastify.post(
     '/api/care-plans',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const BodySchema = CreateCarePlanSchema.extend({
         service_user_id: z.number().int().positive(),
@@ -70,7 +73,7 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/service-users/:id/care-plans
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id/care-plans',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const service_user_id = parseInt(request.params.id, 10);
       if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -87,7 +90,7 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/service-users/:id/care-plans
   fastify.post<{ Params: { id: string } }>(
     '/api/service-users/:id/care-plans',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const service_user_id = parseInt(request.params.id, 10);
       if (isNaN(service_user_id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -114,7 +117,7 @@ export async function carePlanRoutes(fastify: FastifyInstance): Promise<void> {
   // PATCH /api/care-plans/:id
   fastify.patch<{ Params: { id: string } }>(
     '/api/care-plans/:id',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) return reply.code(400).send({ success: false, error: 'Invalid id' });

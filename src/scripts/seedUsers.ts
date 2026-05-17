@@ -2,17 +2,17 @@
  * seedUsers.ts
  *
  * Creates the default system accounts on first run.
- * Safe to call repeatedly — uses upsert so it never creates duplicates.
+ * Safe to call repeatedly — uses findUnique + create so it never creates duplicates.
  *
- * Accounts created:
- *   admin@envicosl.co.uk   / Envico@Admin2024!   (ADMIN)
- *   manager@envicosl.co.uk / Envico@Mgr2024!     (MANAGER)
- *   staff@envicosl.co.uk   / Envico@Staff2024!   (STAFF)
+ * Production passwords are read from env vars:
+ *   SEED_ADMIN_PASSWORD   (required in production)
+ *   SEED_MANAGER_PASSWORD (required in production)
+ *   SEED_STAFF_PASSWORD   (required in production)
  *
  * DEV-ONLY quick-access (only seeded when NODE_ENV !== 'production'):
- *   admin@test.com   / 12345678   (ADMIN)
- *   manager@test.com / 12345678   (MANAGER)
- *   staff@test.com   / 12345678   (STAFF)
+ *   admin@test.com   / 12345678
+ *   manager@test.com / 12345678
+ *   staff@test.com   / 12345678
  */
 
 import bcrypt from 'bcrypt';
@@ -25,11 +25,18 @@ interface SeedUser {
   role:  string;
 }
 
-const PRODUCTION_USERS: SeedUser[] = [
-  { name: 'Envico Admin',   email: 'admin@envicosl.co.uk',   password: 'Envico@Admin2024!',  role: 'ADMIN'   },
-  { name: 'Envico Manager', email: 'manager@envicosl.co.uk', password: 'Envico@Mgr2024!',    role: 'MANAGER' },
-  { name: 'Envico Staff',   email: 'staff@envicosl.co.uk',   password: 'Envico@Staff2024!',  role: 'STAFF'   },
-];
+function getProductionUsers(): SeedUser[] {
+  // Use env vars if set, otherwise fall back to defaults
+  const adminPwd   = process.env.SEED_ADMIN_PASSWORD   ?? 'Envico@Admin2024!';
+  const managerPwd = process.env.SEED_MANAGER_PASSWORD ?? 'Envico@Mgr2024!';
+  const staffPwd   = process.env.SEED_STAFF_PASSWORD   ?? 'Envico@Staff2024!';
+
+  return [
+    { name: 'Envico Admin',   email: 'admin@envicosl.co.uk',   password: adminPwd,   role: 'ADMIN'   },
+    { name: 'Envico Manager', email: 'manager@envicosl.co.uk', password: managerPwd, role: 'MANAGER' },
+    { name: 'Envico Staff',   email: 'staff@envicosl.co.uk',   password: staffPwd,   role: 'STAFF'   },
+  ];
+}
 
 const DEV_USERS: SeedUser[] = [
   { name: 'Engelbert (CEO)',  email: 'admin@test.com',   password: '12345678', role: 'ADMIN'   },
@@ -39,7 +46,8 @@ const DEV_USERS: SeedUser[] = [
 
 export async function seedUsers(): Promise<void> {
   const isDev = process.env.NODE_ENV !== 'production';
-  const usersToSeed = isDev ? [...PRODUCTION_USERS, ...DEV_USERS] : PRODUCTION_USERS;
+  const productionUsers = getProductionUsers();
+  const usersToSeed = isDev ? [...productionUsers, ...DEV_USERS] : productionUsers;
 
   let created = 0;
   let skipped = 0;
@@ -66,7 +74,6 @@ export async function seedUsers(): Promise<void> {
   }
 
   if (created === 0 && skipped > 0) {
-    // All users already exist — only log in dev to avoid noise
     if (isDev) console.log(`[seedUsers] All ${skipped} seed users already exist.`);
   } else if (created > 0) {
     console.log(`[seedUsers] Done — ${created} created, ${skipped} already existed.`);

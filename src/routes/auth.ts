@@ -45,9 +45,21 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // Login
+  // Login — 5 attempts per minute per IP
   fastify.post(
     '/api/auth/login',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+          errorResponseBuilder: () => ({
+            success: false,
+            error: 'Too many login attempts. Please wait 1 minute before trying again.',
+          }),
+        },
+      },
+    },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = LoginSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -64,9 +76,17 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // Refresh token
+  // Refresh token — 10 per minute per IP
   fastify.post(
     '/api/auth/refresh',
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+        },
+      },
+    },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = RefreshSchema.safeParse(request.body);
       if (!parsed.success) {

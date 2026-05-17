@@ -1,7 +1,10 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, requireRole } from '../middleware/authMiddleware';
 import prisma from '../db/prisma';
+
+// FAMILY role blocked from service-user records — PHI must not be accessible to family tokens
+const STAFF_ONLY = [authenticate, requireRole(['ADMIN', 'MANAGER', 'STAFF'])];
 
 const CreateServiceUserSchema = z.object({
   first_name:       z.string().min(1),
@@ -34,7 +37,7 @@ export async function serviceUserRoutes(fastify: FastifyInstance): Promise<void>
   // GET /api/service-users — list all with pagination
   fastify.get(
     '/api/service-users',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const { page, limit, status, care_type } = request.query as {
         page?: string;
@@ -71,7 +74,7 @@ export async function serviceUserRoutes(fastify: FastifyInstance): Promise<void>
   // GET /api/service-users/:id — get one with care plans, incidents, medications
   fastify.get<{ Params: { id: string } }>(
     '/api/service-users/:id',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -89,7 +92,7 @@ export async function serviceUserRoutes(fastify: FastifyInstance): Promise<void>
   // POST /api/service-users — create new service user
   fastify.post(
     '/api/service-users',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = CreateServiceUserSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -111,7 +114,7 @@ export async function serviceUserRoutes(fastify: FastifyInstance): Promise<void>
   // PATCH /api/service-users/:id — update service user
   fastify.patch<{ Params: { id: string } }>(
     '/api/service-users/:id',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) return reply.code(400).send({ success: false, error: 'Invalid id' });
@@ -137,7 +140,7 @@ export async function serviceUserRoutes(fastify: FastifyInstance): Promise<void>
   // POST /api/service-users/from-referral/:referral_id — convert referral to service user
   fastify.post<{ Params: { referral_id: string } }>(
     '/api/service-users/from-referral/:referral_id',
-    { preHandler: [authenticate] },
+    { preHandler: STAFF_ONLY },
     async (request: FastifyRequest<{ Params: { referral_id: string } }>, reply: FastifyReply) => {
       const { referral_id } = request.params;
 

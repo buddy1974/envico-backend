@@ -35,10 +35,12 @@ const HARDCODED: {
 ];
 
 const SubmitSchema = z.object({
-  author: z.string().min(1).max(100),
-  rating: z.number().int().min(1).max(5),
-  text:   z.string().min(10).max(2000),
-  source: z.enum(['Google', 'Trustpilot', 'Direct', 'Other']).default('Direct'),
+  author:   z.string().min(1).max(100),
+  rating:   z.number().int().min(1).max(5),
+  text:     z.string().min(10).max(2000),
+  source:   z.enum(['Google', 'Trustpilot', 'Direct', 'Other']).default('Direct'),
+  // Honeypot field — bots fill it, humans leave it empty
+  website:  z.string().max(0).optional(),
 });
 
 export async function reviewRoutes(fastify: FastifyInstance): Promise<void> {
@@ -88,8 +90,21 @@ export async function reviewRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // POST /api/reviews/submit — submit a new review (pending approval)
+  // Rate limited to 3 per hour per IP to prevent spam
   fastify.post(
     '/api/reviews/submit',
+    {
+      config: {
+        rateLimit: {
+          max: 3,
+          timeWindow: '1 hour',
+          errorResponseBuilder: () => ({
+            success: false,
+            error: 'Too many review submissions. Please try again later.',
+          }),
+        },
+      },
+    },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = SubmitSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -98,6 +113,11 @@ export async function reviewRoutes(fastify: FastifyInstance): Promise<void> {
           error:   'Validation failed',
           details: parsed.error.flatten().fieldErrors,
         });
+      }
+
+      // Honeypot check — reject if bot filled the hidden field
+      if (parsed.data.website && parsed.data.website.length > 0) {
+        return reply.code(201).send({ success: true, message: 'Thank you — your review has been submitted for approval.' });
       }
 
       try {

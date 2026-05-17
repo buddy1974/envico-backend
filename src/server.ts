@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import fastifyEnv from '@fastify/env';
 import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
@@ -39,12 +40,14 @@ import { reviewRoutes } from './routes/reviews';
 import { notificationRoutes } from './routes/notifications';
 import { aiRoutes } from './routes/ai';
 import { smartInputRoutes } from './routes/smart-input';
+import { publicAssistantRoutes } from './routes/public-assistant';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
 import { ensureCriticalTestTask } from './scripts/ensureCriticalTestTask';
 import { seedLocations } from './scripts/seedLocations';
 import { seedUsers } from './scripts/seedUsers';
+import { seedDemoData } from './scripts/seedDemoData';
 
 import { FastifyRequest } from 'fastify';
 
@@ -95,8 +98,18 @@ export async function buildServer() {
   });
 
   fastify.register(cors, {
-    origin: true,
+    origin: [
+      'https://envicosl.co.uk',
+      'https://envico.maxpromo.digital',
+      'https://envico-dashboard.vercel.app',
+      /\.vercel\.app$/,   // allow all Vercel preview URLs for dashboard
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
+  fastify.register(helmet, {
+    contentSecurityPolicy: false, // disabled — API only, not serving HTML
+    crossOriginEmbedderPolicy: false,
   });
 
   // Global rate limit — 100 req/min per IP
@@ -145,6 +158,7 @@ export async function buildServer() {
   fastify.register(notificationRoutes);
   fastify.register(aiRoutes, { prefix: '/api/ai' });
   fastify.register(smartInputRoutes);
+  fastify.register(publicAssistantRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
@@ -172,6 +186,7 @@ async function start() {
     }
 
     await seedUsers();      // ensure default accounts exist before anything else
+    await seedDemoData();    // demo family account + sample care data
     await seedLocations();
     startCronJobs();
   } catch (err: any) {

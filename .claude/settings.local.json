@@ -15,7 +15,22 @@
       "Bash(npx tsc:*)",
       "Bash(npx vite:*)",
       "Bash(node:*)",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Read(//c/Users/loneb/Documents/ai-software-dev/projects/envico-dashboard/**)",
+      "Bash(vercel --prod --yes)",
+      "Bash(where gh:*)",
+      "Bash(winget list:*)",
+      "Bash(git config:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Skill(claude-api)",
+      "Bash(node -e \"require\\(''./dist/server.js''\\)\")",
+      "Bash(npm show:*)",
+      "Bash(node -e \"require\\(''''./dist/server.js''''\\)\")",
+      "Bash(echo:*)",
+      "Bash(npx web-push:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''node engine:'''', d.get\\(''''engines'''',{}\\).get\\(''''node'''',''''not set''''\\)\\); print\\(''''web-push:'''', d[''''dependencies''''].get\\(''''web-push'''',''''missing''''\\)\\); print\\(''''@types/web-push:'''', d.get\\(''''devDependencies'''',{}\\).get\\(''''@types/web-push'''',''''missing''''\\)\\)\")"
     ]
   }
 }
