@@ -42,6 +42,7 @@ import { aiRoutes } from './routes/ai';
 import { smartInputRoutes } from './routes/smart-input';
 import { publicAssistantRoutes } from './routes/public-assistant';
 import { configRoutes } from './routes/config';
+import { appointmentRoutes } from './routes/appointments';
 
 import { registerHandlers } from './automation/handlers';
 import { startCronJobs } from './automation/cron';
@@ -161,6 +162,7 @@ export async function buildServer() {
   fastify.register(smartInputRoutes);
   fastify.register(publicAssistantRoutes);
   fastify.register(configRoutes);
+  fastify.register(appointmentRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
@@ -192,10 +194,4 @@ async function start() {
     try { await seedDemoData(); } catch (e: any) { console.error('[startup] seedDemoData failed:', e.message); }
     try { await seedLocations(); } catch (e: any) { console.error('[startup] seedLocations failed:', e.message); }
     startCronJobs();
-  } catch (err) {
-    console.error('[startup] Fatal error:', err);
-    process.exit(1);
   }
-}
-
-start();
