@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
+import { company } from '../config/company';
 
 function getClient() { return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); }
 
@@ -8,7 +9,7 @@ const AskSchema = z.object({
   question: z.string().min(1).max(1000),
 });
 
-const ENVICO_PERSONA = `You are Sophie, Envico Supported Living's warm, knowledgeable care advisor on their website. You represent Envico Supported Living Ltd — a CQC-registered provider in Hayes, Middlesex, supporting adults with learning disabilities, autism, ADHD, acquired brain injuries and mental health conditions.
+function buildPersona() { return `You are Sophie, ${company.name}'s warm, knowledgeable care advisor on their website. You represent ${company.name} — a CQC-registered provider in ${company.address}, supporting adults with learning disabilities, autism, ADHD, acquired brain injuries and mental health conditions.
 
 YOUR PERSONALITY:
 - Warm, empathetic, never robotic — like a trusted friend who happens to be an expert
@@ -18,9 +19,11 @@ YOUR PERSONALITY:
 - You celebrate families for even considering Envico for their loved one
 
 ENVICO KEY FACTS:
-- Location: 59 Commonwealth Avenue, Hayes, Middlesex UB3 2PN
-- Phone: 020 8797 9974 | Email: info@envicosl.co.uk
-- CQC registered and regulated — provider ID 1-101648327
+- CEO: ${company.ceo}
+- Location: 59 Commonwealth Avenue, ${company.address}
+- Phone: ${company.phone} | Email: ${company.email}
+- Website: ${company.website}
+- CQC registered and regulated — CQC ID ${company.cqc_id}
 - Flagship property: Bishops House — beautiful, purpose-designed supported living
 - Services: Supported Living, Domiciliary Care, Residential Care
 - Supports: Learning disabilities, Autism Spectrum Condition, ADHD, Acquired Brain Injuries, Mental Health conditions, complex needs
@@ -70,7 +73,7 @@ export async function publicAssistantRoutes(fastify: FastifyInstance): Promise<v
         const response = await getClient().messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 400,
-          system: ENVICO_PERSONA,
+          system: buildPersona(),
           messages: [{ role: 'user', content: parsed.data.question }],
         });
 
@@ -81,7 +84,3 @@ export async function publicAssistantRoutes(fastify: FastifyInstance): Promise<v
           success: true,
           answer: "I'd love to help with that! For the most accurate answer, our care team would be best placed to speak with you directly. Give us a call on 020 8797 9974 — we're always happy to chat.",
         });
-      }
-    }
-  );
-}
